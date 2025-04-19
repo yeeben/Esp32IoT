@@ -14,6 +14,7 @@
 #include "esp_system.h"
 
 #include "include/wifi_ap_config.h"
+#include "include/http_server.h"
 
 void app_main(void)
 {
@@ -44,4 +45,5 @@ void app_main(void)
 
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
     wifi_ap_init();
+    start_webserver();
 }
