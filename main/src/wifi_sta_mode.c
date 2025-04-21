@@ -110,14 +110,44 @@ esp_err_t wifi_init_sta(const char* ssid, const char* password)
 esp_err_t wifi_switch_to_sta(const char* ssid, const char* password)
 {
     if (ssid == NULL || password == NULL) {
+        ESP_LOGE(TAG, "Invalid SSID or password (NULL)");
         return ESP_ERR_INVALID_ARG;
     }
-    wifi_mode_t *current_mode = {0};
 
-    if(ESP_OK != esp_wifi_get_mode(current_mode)) {
-        esp_wifi_deinit();
-        esp_wifi_stop();
+    if (strlen(ssid) == 0 || strlen(password) == 0) {
+        ESP_LOGE(TAG, "Invalid SSID or password (empty)");
+        return ESP_ERR_INVALID_ARG;
     }
 
-    return wifi_init_sta(ssid, password);
+    wifi_mode_t current_mode;
+    esp_err_t err = esp_wifi_get_mode(&current_mode);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get WiFi mode: %s", esp_err_to_name(err));
+        return err;
+    }
+
+    // Stop WiFi if it's running
+    if (current_mode != WIFI_MODE_NULL) {
+        err = esp_wifi_stop();
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to stop WiFi: %s", esp_err_to_name(err));
+            return err;
+        }
+    }
+
+    // Try to initialize STA mode
+    err = wifi_init_sta(ssid, password);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize STA mode: %s", esp_err_to_name(err));
+        // Attempt to restore AP mode if STA fails
+        if (current_mode == WIFI_MODE_AP) {
+            ESP_LOGI(TAG, "Attempting to restore AP mode");
+            esp_wifi_set_mode(WIFI_MODE_AP);
+            esp_wifi_start();
+        }
+        return err;
+    }
+
+    ESP_LOGI(TAG, "Successfully switched to STA mode");
+    return ESP_OK;
 }
