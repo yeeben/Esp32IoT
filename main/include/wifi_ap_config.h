@@ -3,7 +3,7 @@
 
 #include "esp_err.h"
 
-void wifi_ap_init();
+esp_err_t wifi_ap_init();
 
 
 #endif

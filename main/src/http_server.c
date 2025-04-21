@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include "http_server.h"
+#include "wifi_ap_config.h"
+#include "wifi_sta_mode.h"
 
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
@@ -63,10 +65,26 @@ static esp_err_t wifi_configure_handler(httpd_req_t *req)
         
         memcpy(password, pass_start, MIN(64, strlen(pass_start)));
         
-        // TODO: Add your WiFi connection logic here using ssid and password
         
         const char* response = "WiFi credentials received. Attempting to connect...";
-        httpd_resp_send(req, response, strlen(response));
+        if(ESP_OK != wifi_switch_to_sta(ssid, password)) {
+            // Try connecting up to 3 times
+            int retries = 3;
+            bool connected = false;
+            while (retries > 0 && !connected) {
+                if (wifi_switch_to_sta(ssid, password) == ESP_OK) {
+                    connected = true;
+                    break;
+                }
+                retries--;
+                vTaskDelay(pdMS_TO_TICKS(1000)); // Wait 1 second between retries
+            }
+            
+            if (!connected) {
+                // If connection failed after retries, reinitialize AP mode
+                wifi_ap_init();
+            }
+        }
         return ESP_OK;
     }
 

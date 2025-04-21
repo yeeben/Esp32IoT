@@ -12,9 +12,12 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_system.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
 
 #include "include/wifi_ap_config.h"
 #include "include/http_server.h"
+#include "include/wifi_sta_mode.h"
 
 void app_main(void)
 {
@@ -44,6 +47,16 @@ void app_main(void)
            (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+      ESP_ERROR_CHECK(nvs_flash_erase());
+      ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+
     wifi_ap_init();
+
     start_webserver();
 }
