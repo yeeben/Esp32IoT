@@ -26,8 +26,11 @@ static void event_handler(void* arg, esp_event_base_t event_base,
             ESP_LOGI(TAG, "retry to connect to the AP");
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+
         }
         ESP_LOGI(TAG,"connect to the AP fail");
+        xEventGroupClearBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -67,12 +70,7 @@ esp_err_t wifi_init_sta(const char* ssid, const char* password)
 
     wifi_config_t wifi_config = {
         .sta = {
-            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (password len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-             * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK,
+            .threshold.authmode = WIFI_AUTH_OPEN,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
             .sae_h2e_identifier = ""
         },
@@ -114,16 +112,15 @@ esp_err_t wifi_switch_to_sta(const char* ssid, const char* password)
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (strlen(ssid) == 0 || strlen(password) == 0) {
-        ESP_LOGE(TAG, "Invalid SSID or password (empty)");
+    if (strlen(ssid) == 0) {
+        ESP_LOGE(TAG, "Invalid SSID (empty)");
         return ESP_ERR_INVALID_ARG;
     }
 
     wifi_mode_t current_mode;
     esp_err_t err = esp_wifi_get_mode(&current_mode);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to get WiFi mode: %s", esp_err_to_name(err));
-        return err;
+        return wifi_init_sta(ssid, password);
     }
 
     // Stop WiFi if it's running
@@ -150,4 +147,12 @@ esp_err_t wifi_switch_to_sta(const char* ssid, const char* password)
 
     ESP_LOGI(TAG, "Successfully switched to STA mode");
     return ESP_OK;
+}
+
+bool is_station_connected() {
+    EventBits_t bits = xEventGroupGetBits(s_wifi_event_group);
+    if(bits & WIFI_CONNECTED_BIT) {
+        return true;
+    }
+    return false;
 }

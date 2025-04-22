@@ -66,7 +66,6 @@ static esp_err_t wifi_configure_handler(httpd_req_t *req)
         memcpy(password, pass_start, MIN(64, strlen(pass_start)));
         
         
-        const char* response = "WiFi credentials received. Attempting to connect...";
         if(ESP_OK != wifi_switch_to_sta(ssid, password)) {
             // Try connecting up to 3 times
             int retries = 3;
@@ -111,11 +110,8 @@ httpd_uri_t wifi_configure_post = {
 /* Function for starting the webserver */
 httpd_handle_t start_webserver(void)
 {
-    /* Generate default configuration */
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-
-    /* Empty handle to esp_http_server */
     httpd_handle_t server = NULL;
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
 
     /* Start the httpd server */
     if (httpd_start(&server, &config) == ESP_OK) {
