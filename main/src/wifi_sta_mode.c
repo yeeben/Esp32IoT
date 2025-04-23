@@ -9,8 +9,10 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT     BIT1
 #define MAXIMUM_RETRY     5
+#define HOST_IP_ADDRESS_SIZE 16
 
 static const char *TAG = "wifi station";
+static char gw_host_ip[HOST_IP_ADDRESS_SIZE] = "";
 static EventGroupHandle_t s_wifi_event_group;
 static int s_retry_num = 0;
 
@@ -34,6 +36,9 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        ESP_LOGI(TAG, "got gw ip:" IPSTR, IP2STR(&event->ip_info.gw));
+        snprintf(gw_host_ip, sizeof(gw_host_ip), IPSTR, IP2STR(&event->ip_info.gw));
+
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
@@ -149,10 +154,19 @@ esp_err_t wifi_switch_to_sta(const char* ssid, const char* password)
     return ESP_OK;
 }
 
-bool is_station_connected() {
+bool wifi_is_station_connected() {
     EventBits_t bits = xEventGroupGetBits(s_wifi_event_group);
     if(bits & WIFI_CONNECTED_BIT) {
         return true;
     }
     return false;
+}
+
+esp_err_t wifi_get_host_ip_address(char *host_ip) {
+    if(!host_ip) {
+        return ESP_ERR_INVALID_ARG;
+    }
+    strcpy(host_ip, gw_host_ip);
+
+    return ESP_OK;
 }

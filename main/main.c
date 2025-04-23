@@ -14,11 +14,14 @@
 #include "esp_system.h"
 #include "esp_event.h"
 #include "nvs_flash.h"
+#include "lwip/sockets.h"
+
 
 #include "include/wifi_ap_config.h"
 #include "include/http_server.h"
 #include "include/wifi_sta_mode.h"
 #include "include/sensor_data.h"
+#include "tcp_client.h"
 
 void app_main(void)
 {
@@ -60,5 +63,5 @@ void app_main(void)
     // wifi_ap_init();
     // start_webserver();
     wifi_switch_to_sta("mywifissid", "");
-    create_task_entry_func();
+    xTaskCreate(tcp_client_task, "tcp_client", 4096, (void*)AF_INET6, 5, NULL);
 }
