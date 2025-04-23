@@ -2,20 +2,21 @@
 #define PAYLOAD_MESSAGE_H
 #include <stdint.h>
 
-#define MAX_MESSAGE_SIZE 128
+#define MAX_MESSAGE_SIZE 256
 
 typedef enum {
-    MSG_TYPE_HELLO = 0,
-    MSG_TYPE_PAYLOAD = 1,
-    MSG_TYPE_ACK = 2,
-    MSG_TYPE_ERROR = 3
+    MSG_TYPE_HELLO,
+    MSG_TYPE_SSL,
+    MSG_TYPE_ACK,
+    MSG_TYPE_ERROR,
+    MSG_TYPE_MAX,
 } message_type_t;
 
 typedef struct {
     message_type_t type;
     uint16_t length;
     uint16_t sequence_id;
-    char data[MAX_MESSAGE_SIZE];
+    uint8_t data[MAX_MESSAGE_SIZE];
 } message_t;
 
 #endif
