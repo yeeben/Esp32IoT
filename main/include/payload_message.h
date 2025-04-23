@@ -18,5 +18,7 @@ typedef struct {
     uint16_t sequence_id;
     uint8_t data[MAX_MESSAGE_SIZE];
 } message_t;
+void payload_message_hello_message(message_t *message);
+void payload_message_ssl(message_t *message);
 
 #endif

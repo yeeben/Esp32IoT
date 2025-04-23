@@ -19,6 +19,7 @@ static uint16_t sequence_id = 0;
 
 void tcp_client_task(void *pvParameters)
 {
+    static message_type_t message_state = MSG_TYPE_HELLO;
     static char host_ip[HOST_IP_ADDRESS_SIZE] = "";
     char rx_buffer[sizeof(message_t)];
     int addr_family = 0;
@@ -72,10 +73,31 @@ void tcp_client_task(void *pvParameters)
         ESP_LOGI(TAG, "Successfully connected");
 
         while (1) {
-            strncpy(message.data, "I am a HELLO", sizeof(message.data) - 1);
-            message.data[sizeof(message.data) - 1] = '\0';
-            message.length = strlen(message.data);
             message.sequence_id = sequence_id;
+
+            switch(message_state) {
+                case MSG_TYPE_HELLO:
+                    payload_message_hello_message(&message);
+                    message_state = (message_type_t)(message_state + 1);
+                    break;
+                case MSG_TYPE_SSL:
+                    payload_message_ssl(&message);
+                    message_state = (message_type_t)(message_state + 1);
+                    break;
+                case MSG_TYPE_ACK:
+                    message_state = (message_type_t)(message_state + 1);
+                    break;
+                case MSG_TYPE_ERROR:
+                    message_state = (message_type_t)(message_state + 1);
+                    break;
+                case MSG_TYPE_MAX:
+                    message_state = MSG_TYPE_HELLO;
+                    break;
+                default:
+                    break;
+
+            }
+
 
             int err = send(sock, &message, sizeof(message_t), 0);
             if (err < 0) {
@@ -84,8 +106,8 @@ void tcp_client_task(void *pvParameters)
             }
             sequence_id++;
 
-
             vTaskDelay(TRANSMIT_DATA_FREQ / portTICK_PERIOD_MS);
+            
 
 
         }
