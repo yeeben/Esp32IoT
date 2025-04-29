@@ -20,7 +20,6 @@
 #include "include/wifi_ap_config.h"
 #include "include/http_server.h"
 #include "include/wifi_sta_mode.h"
-#include "include/sensor_data.h"
 #include "include/i2c_driver.h"
 #include "include/mpu_6050.h"
 #include "tcp_client.h"
@@ -67,8 +66,7 @@ void app_main(void)
     // wifi_switch_to_sta("mywifissid", "");
     // xTaskCreate(tcp_client_task, "tcp_client", 4096, (void*)AF_INET6, 5, NULL);
     i2c_bus_init();
-    mpu_6050_init();
-    mpu_6050_who_am_i();
-    i2c_free_bus();
+
+    xTaskCreate(mpu_6050_sampling_task, "mpu_6050", 4096, NULL, 3, NULL);
 
 }
