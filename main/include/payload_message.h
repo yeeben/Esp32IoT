@@ -1,24 +1,22 @@
 #ifndef PAYLOAD_MESSAGE_H
 #define PAYLOAD_MESSAGE_H
 #include <stdint.h>
+#include "esp_err.h"
 
 #define MAX_MESSAGE_SIZE 256
 
 typedef enum {
+    MSG_TYPE_MPU_DATA,
     MSG_TYPE_HELLO,
-    MSG_TYPE_SSL,
-    MSG_TYPE_ACK,
-    MSG_TYPE_ERROR,
-    MSG_TYPE_MAX,
 } message_type_t;
 
 typedef struct {
     message_type_t type;
     uint16_t length;
-    uint16_t sequence_id;
+    uint32_t sequence_id;
     uint8_t data[MAX_MESSAGE_SIZE];
 } message_t;
-void payload_message_hello_message(message_t *message);
-void payload_message_ssl(message_t *message);
 
+esp_err_t payload_message_load_mpu_sample(message_t *message);
+esp_err_t payload_message_load_hello(message_t *message);
 #endif

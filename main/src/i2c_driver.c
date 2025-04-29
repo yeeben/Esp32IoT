@@ -1,4 +1,4 @@
-
+#include "freertos/FreeRTOS.h"
 #include "driver/i2c_master.h"
 
 #define I2C_SDA_GPIO_PIN 21
@@ -17,13 +17,13 @@ void i2c_bus_init() {
     };
 
     ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &bus_handle));
-
 }
 
 void i2c_device_init(i2c_device_config_t *device_config, i2c_master_dev_handle_t *dev_handle) 
 {
     ESP_ERROR_CHECK(i2c_master_bus_add_device(bus_handle, device_config, dev_handle));
     ESP_ERROR_CHECK(i2c_master_probe(bus_handle, device_config->device_address, I2C_READ_TIMEOUT));
+
 }
 
 void i2c_free_device(i2c_master_dev_handle_t *dev_handle) {
@@ -33,4 +33,3 @@ void i2c_free_device(i2c_master_dev_handle_t *dev_handle) {
 void i2c_free_bus() {
     i2c_del_master_bus(bus_handle);
 }
-

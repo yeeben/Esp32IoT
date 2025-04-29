@@ -63,10 +63,11 @@ void app_main(void)
 
     // wifi_ap_init();
     // start_webserver();
-    // wifi_switch_to_sta("mywifissid", "");
-    // xTaskCreate(tcp_client_task, "tcp_client", 4096, (void*)AF_INET6, 5, NULL);
+    wifi_switch_to_sta("mywifissid", "");
     i2c_bus_init();
 
+    
     xTaskCreate(mpu_6050_sampling_task, "mpu_6050", 4096, NULL, 3, NULL);
+    xTaskCreate(tcp_client_task, "tcp_client", 4096, (void*)AF_INET6, 5, NULL);
 
 }
