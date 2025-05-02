@@ -6,6 +6,7 @@
 #define MAX_MESSAGE_SIZE 256
 
 typedef enum {
+    MSG_TYPE_BASE,
     MSG_TYPE_MPU_DATA,
     MSG_TYPE_HELLO,
 } message_type_t;

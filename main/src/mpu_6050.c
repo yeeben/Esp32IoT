@@ -1,15 +1,20 @@
 #include "esp_log.h"
 #include "esp_err.h"
 #include "string.h"
+#include "math.h"
 #include "freertos/FreeRTOS.h"
 
 #include "i2c_driver.h"
+#include "esp_timer.h"
 #include "mpu_6050.h"
 #define MPU_6050_ADDRESS 0x68
 #define I2C_CLK_SPEED_HZ (100 * 1000)
 #define I2C_TRANSACTION_TIMEOUT 500
 #define MPU_6050_SAMPLING_RATE 1 //Hz
 #define RTOS_SAMPLING_DELAY_MS 50
+
+#define MPU_GYRO_CONFIG              0x1B
+#define MPU_ACCEL_CONFIG             0x01C
 
 #define MPU_SELF_TEST_X_ADDRESS      0x0D
 #define MPU_SELF_TEST_Y_ADDRESS      0x0E
@@ -29,10 +34,12 @@
 #define MPU_GYRO_YOUT_L_ADDRESS      0x46
 #define MPU_GYRO_ZOUT_H_ADDRESS      0x47
 #define MPU_GYRO_ZOUT_L_ADDRESS      0x48
-#define MPU9250_PWR_MGMT_1_REG_ADDRESS 0x6B
+#define MPU6050_PWR_MGMT_1_REG_ADDRESS 0x6B
 #define MPU_WHO_AM_I_ADDRESS 0x75
 
-#define MPU9250_RESET_BIT           7
+#define MPU6050_RESET_BIT            7
+#define MPU6050_FS_SEL_BIT           3
+
 
 static QueueHandle_t xMPUQueue;
 static i2c_master_dev_handle_t dev_handle;
@@ -66,8 +73,7 @@ void mpu_6050_init()
         .scl_speed_hz = I2C_CLK_SPEED_HZ,
     };
     i2c_device_init(&dev_config, &dev_handle);
-
-    mpu_6050_register_write(MPU9250_PWR_MGMT_1_REG_ADDRESS, 0);
+    mpu_6050_register_write(MPU6050_PWR_MGMT_1_REG_ADDRESS, 0);
 }
 
 void mpu_queue_init() {
@@ -161,21 +167,54 @@ void mpu_6050_sample_temp(uint16_t *temp) {
     
 }
 
+void mpu_6050_calculate_IMU_error() {
+    mpu_sample_t sample = {0};
+
+    float accErrorX = 0.0;
+    float accErrorY = 0.0;
+    float gyroErrorX = 0.0;
+    float gyroErrorY = 0.0;
+    float gyroErrorZ = 0.0;
+    for(int i = 0; i < 200; i++) {
+        mpu_6050_sample_accel(&(sample.acceleometer));
+        accErrorX = accErrorX + ((atan((sample.acceleometer.y) / sqrt(pow((sample.acceleometer.x), 2) + pow((sample.acceleometer.z), 2))) * 180 / M_PI));
+        accErrorY = accErrorY + ((atan(-1 * (sample.acceleometer.x) / sqrt(pow((sample.acceleometer.y), 2) + pow((sample.acceleometer.z), 2))) * 180 / M_PI));
+    }
+    accErrorX = accErrorX / 200;
+    accErrorY = accErrorY / 200;
+
+    for(int i =0; i < 200; i++) {
+        mpu_6050_sample_gyro(&(sample.gyro));
+        gyroErrorX = gyroErrorX + (sample.gyro.x)/ 131.0;
+        gyroErrorY = gyroErrorY + (sample.gyro.y)/ 131.0;
+        gyroErrorZ = gyroErrorZ + (sample.gyro.z)/ 131.0;
+    }
+    gyroErrorX = gyroErrorX / 200;
+    gyroErrorY = gyroErrorY / 200;
+    gyroErrorZ = gyroErrorZ / 200;
+    ESP_LOGI(TAG, "AccX: %8.2f\t AccY:%8.2f\t GyroX:%8.2f\t GyroY:%8.2f\t GyroZ:%8.2f",
+        accErrorX, accErrorY, gyroErrorX, gyroErrorY, gyroErrorZ);
+}
+
 void mpu_6050_sampling_task() {
     mpu_6050_init();
     mpu_queue_init();
     mpu_6050_who_am_i();
     mpu_6050_self_test();
+    mpu_6050_calculate_IMU_error();
     mpu_sample_t sample = {0};
     ESP_LOGI(TAG, "Sample Task Started");
-
+    int64_t duration  = 0;
+    int64_t start_time = 0;
+    int64_t end_time = 0;
 
     while(1) {
         mpu_6050_sample_accel(&(sample.acceleometer));
         mpu_6050_sample_gyro(&(sample.gyro));
         mpu_6050_sample_temp(&(sample.temperature));
+        sample.timestamp = esp_timer_get_time();
         mpu_queue_send(sample);
-        vTaskDelay(RTOS_SAMPLING_DELAY_MS);
+        vTaskDelay(10);
     }
 
 }

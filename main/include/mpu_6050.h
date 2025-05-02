@@ -20,6 +20,7 @@ typedef struct {
     mpu_accelerometer_t acceleometer;
     uint16_t temperature;
     mpu_gyro_t gyro;
+    int64_t timestamp;
 } mpu_sample_t;
 
 
